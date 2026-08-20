@@ -33,19 +33,27 @@ export const StopwatchView: React.FC<StopwatchViewProps> = ({
   }, []);
 
   const handleStart = useCallback(() => {
+    if (isRunning) return;
     playActionStart(soundEnabled);
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
     startTimeRef.current = Date.now();
     setIsRunning(true);
     animationFrameRef.current = requestAnimationFrame(updateTime);
-  }, [soundEnabled, updateTime]);
+  }, [soundEnabled, updateTime, isRunning]);
 
   const handlePause = useCallback(() => {
     playActionStop(soundEnabled);
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
     }
-    accumulatedTimeRef.current += Date.now() - startTimeRef.current;
-    startTimeRef.current = 0;
+    if (startTimeRef.current > 0) {
+      accumulatedTimeRef.current += Date.now() - startTimeRef.current;
+      startTimeRef.current = 0;
+    }
     setIsRunning(false);
   }, [soundEnabled]);
 
@@ -53,6 +61,7 @@ export const StopwatchView: React.FC<StopwatchViewProps> = ({
     playTactileClick(soundEnabled);
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
     }
     startTimeRef.current = 0;
     accumulatedTimeRef.current = 0;
@@ -104,7 +113,7 @@ export const StopwatchView: React.FC<StopwatchViewProps> = ({
   }, [isRunning, handlePause, handleStart, handleReset]);
 
   const swData = formatStopwatchTime(elapsedTime);
-  const scaleMultiplier = Math.max(0.65, Math.min(1.45, fontSizeScale));
+  const scaleMultiplier = Math.max(0.65, Math.min(2.5, typeof fontSizeScale === 'number' && !isNaN(fontSizeScale) ? fontSizeScale : 1.45));
 
   // Determine effective text color for time digits based on digitColor setting
   const effectiveIsWhite = digitColor === 'white' ? true : digitColor === 'black' ? false : isDark;

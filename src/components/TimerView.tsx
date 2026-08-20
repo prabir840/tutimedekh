@@ -22,13 +22,23 @@ export const TimerView: React.FC<TimerViewProps> = ({
   digitColor,
 }) => {
   // Input settings state (when timer is not running/paused)
-  const [inputHours, setInputHours] = useState<number>(() => Math.floor(lastTimerPreset / 3600));
-  const [inputMinutes, setInputMinutes] = useState<number>(() => Math.floor((lastTimerPreset % 3600) / 60));
-  const [inputSeconds, setInputSeconds] = useState<number>(() => lastTimerPreset % 60);
+  const [inputHours, setInputHours] = useState<number>(() => {
+    const validPreset = typeof lastTimerPreset === 'number' && !isNaN(lastTimerPreset) && lastTimerPreset > 0 ? lastTimerPreset : 300;
+    return Math.max(0, Math.min(23, Math.floor(validPreset / 3600)));
+  });
+  const [inputMinutes, setInputMinutes] = useState<number>(() => {
+    const validPreset = typeof lastTimerPreset === 'number' && !isNaN(lastTimerPreset) && lastTimerPreset > 0 ? lastTimerPreset : 300;
+    return Math.max(0, Math.min(59, Math.floor((validPreset % 3600) / 60)));
+  });
+  const [inputSeconds, setInputSeconds] = useState<number>(() => {
+    const validPreset = typeof lastTimerPreset === 'number' && !isNaN(lastTimerPreset) && lastTimerPreset > 0 ? lastTimerPreset : 300;
+    return Math.max(0, Math.min(59, validPreset % 60));
+  });
 
   // Runtime timer states
-  const [totalInitialSeconds, setTotalInitialSeconds] = useState<number>(lastTimerPreset || 300);
-  const [remainingSeconds, setRemainingSeconds] = useState<number>(lastTimerPreset || 300);
+  const initialSecondsSanitized = typeof lastTimerPreset === 'number' && !isNaN(lastTimerPreset) && lastTimerPreset > 0 ? lastTimerPreset : 300;
+  const [totalInitialSeconds, setTotalInitialSeconds] = useState<number>(initialSecondsSanitized);
+  const [remainingSeconds, setRemainingSeconds] = useState<number>(initialSecondsSanitized);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
 
@@ -44,12 +54,13 @@ export const TimerView: React.FC<TimerViewProps> = ({
     { label: '30 min', seconds: 1800 },
   ];
 
-  // Stop alarm on unmount
+  // Stop alarm and clear interval on unmount
   useEffect(() => {
     return () => {
       stopRepeatingTimerAlarm();
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
       }
     };
   }, []);
@@ -61,7 +72,8 @@ export const TimerView: React.FC<TimerViewProps> = ({
 
   const handleStart = useCallback(() => {
     handleStopAlarm();
-    const duration = remainingSeconds > 0 ? remainingSeconds : inputHours * 3600 + inputMinutes * 60 + inputSeconds;
+    const rawDuration = remainingSeconds > 0 ? remainingSeconds : inputHours * 3600 + inputMinutes * 60 + inputSeconds;
+    const duration = Math.max(1, Math.min(86400, isNaN(rawDuration) ? 300 : Math.floor(rawDuration)));
 
     if (duration <= 0) return;
 
@@ -73,7 +85,10 @@ export const TimerView: React.FC<TimerViewProps> = ({
     endTimeRef.current = Date.now() + duration * 1000;
     setIsRunning(true);
 
-    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
 
     timerIntervalRef.current = window.setInterval(() => {
       const now = Date.now();
@@ -81,7 +96,10 @@ export const TimerView: React.FC<TimerViewProps> = ({
       const remSec = Math.ceil(remainingMs / 1000);
 
       if (remSec <= 0) {
-        if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+        if (timerIntervalRef.current) {
+          clearInterval(timerIntervalRef.current);
+          timerIntervalRef.current = null;
+        }
         setRemainingSeconds(0);
         setIsRunning(false);
         setIsCompleted(true);
@@ -177,7 +195,7 @@ export const TimerView: React.FC<TimerViewProps> = ({
   }, [isRunning, isCompleted, handlePause, handleStart, handleReset, handleStopAlarm]);
 
   const timerData = formatTimerSeconds(remainingSeconds);
-  const scaleMultiplier = Math.max(0.65, Math.min(1.45, fontSizeScale));
+  const scaleMultiplier = Math.max(0.65, Math.min(2.5, typeof fontSizeScale === 'number' && !isNaN(fontSizeScale) ? fontSizeScale : 1.45));
 
   // Determine effective text color for time digits based on digitColor setting
   const effectiveIsWhite = digitColor === 'white' ? true : digitColor === 'black' ? false : isDark;

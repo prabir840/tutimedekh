@@ -32,7 +32,7 @@ export const ClockView: React.FC<ClockViewProps> = ({
 
   // Dynamic responsive font size based on scale
   // Base scale clamped cleanly
-  const scaleMultiplier = Math.max(0.65, Math.min(1.45, fontSizeScale));
+  const scaleMultiplier = Math.max(0.65, Math.min(2.5, typeof fontSizeScale === 'number' && !isNaN(fontSizeScale) ? fontSizeScale : 1.45));
 
   // Determine effective text color for time digits based on digitColor setting
   const effectiveIsWhite = digitColor === 'white' ? true : digitColor === 'black' ? false : isDark;
