@@ -1,0 +1,6 @@
+{
+  "name": "TuTimeDekh",
+  "description": "A premium, futuristic minimalist clock, stopwatch, and timer web application with fluid glassmorphism aesthetics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
